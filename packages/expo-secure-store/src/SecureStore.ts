@@ -241,6 +241,37 @@ export function canUseBiometricAuthentication(): boolean {
   return ExpoSecureStore.canUseBiometricAuthentication();
 }
 
+// @needsAudit
+/**
+ * Reads the iOS Keychain accessibility class (`kSecAttrAccessible`) of the stored item
+ * **without** accessing its value. Useful when you need to decide whether the item is
+ * readable in the current device-lock state (e.g. from a background push-notification
+ * task) before attempting a read that would otherwise return
+ * `errSecInteractionNotAllowed`.
+ *
+ * @param key The key that was used to store the associated value.
+ * @param options An [`SecureStoreOptions`](#securestoreoptions) object. `keychainService`
+ *   should match what was used to write the entry.
+ *
+ * @return A promise that resolves to the stored accessibility constant (one of the
+ * `AFTER_FIRST_UNLOCK` / `WHEN_UNLOCKED` / etc. exports from this module), or `null` if
+ * the item does not exist, was stored with `requireAuthentication: true` (in which case
+ * the protection class cannot be reliably extracted), or the platform does not support
+ * inspection (Android).
+ *
+ * @platform ios
+ */
+export async function getAccessibilityAsync(
+  key: string,
+  options: SecureStoreOptions = {}
+): Promise<KeychainAccessibilityConstant | null> {
+  ensureValidKey(key);
+  if (!ExpoSecureStore.getAccessibilityWithKeyAsync) {
+    return null;
+  }
+  return await ExpoSecureStore.getAccessibilityWithKeyAsync(key, options);
+}
+
 function ensureValidKey(key: string) {
   if (!isValidKey(key)) {
     throw new Error(

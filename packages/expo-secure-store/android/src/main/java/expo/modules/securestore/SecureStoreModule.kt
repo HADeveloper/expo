@@ -56,6 +56,12 @@ open class SecureStoreModule : Module() {
       }
     }
 
+    AsyncFunction("getAccessibilityWithKeyAsync") { _: String, _: SecureStoreOptions ->
+      // Android has no equivalent of iOS's kSecAttrAccessible per-item protection class.
+      // Return null so JS callers treat the value as "unknown".
+      null as Int?
+    }
+
     AsyncFunction("deleteValueWithKeyAsync") { key: String, options: SecureStoreOptions ->
       try {
         deleteItemImpl(key, options)

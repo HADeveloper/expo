@@ -6,6 +6,8 @@
 
 ### 🎉 New features
 
+- Add `getAccessibilityAsync` to read the iOS Keychain `kSecAttrAccessible` protection class of a stored item without accessing its value. Returns `null` on Android. ([#TODO](https://github.com/expo/expo/pull/TODO) by [@HADeveloper](https://github.com/HADeveloper))
+
 ### 🐛 Bug fixes
 
 ### 💡 Others

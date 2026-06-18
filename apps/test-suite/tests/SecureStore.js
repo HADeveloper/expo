@@ -134,6 +134,46 @@ export function test(t) {
         t.expect(result).toBe(null);
       });
     });
+    t.describe('getAccessibilityAsync', () => {
+      t.it('returns null for a missing key', async () => {
+        const result = await SecureStore.getAccessibilityAsync('no-such-key');
+        t.expect(result).toBe(null);
+      });
+      t.it('returns null on Android', async () => {
+        if (Platform.OS !== 'android') {
+          return;
+        }
+        await SecureStore.setItemAsync(key, value, {});
+        const result = await SecureStore.getAccessibilityAsync(key);
+        t.expect(result).toBe(null);
+        await SecureStore.deleteItemAsync(key, {});
+      });
+      if (Platform.OS === 'ios') {
+        t.it('returns a KeychainAccessibilityConstant after storing a value', async () => {
+          await SecureStore.setItemAsync(key, value, {});
+          const result = await SecureStore.getAccessibilityAsync(key);
+          t.expect(typeof result).toBe('number');
+          await SecureStore.deleteItemAsync(key, {});
+        });
+        t.it(
+          'returns the correct constant when stored with AFTER_FIRST_UNLOCK',
+          async () => {
+            await SecureStore.setItemAsync(key, value, {
+              keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+            });
+            const result = await SecureStore.getAccessibilityAsync(key);
+            t.expect(result).toBe(SecureStore.AFTER_FIRST_UNLOCK);
+            await SecureStore.deleteItemAsync(key, {});
+          }
+        );
+        t.it('returns null after deleting the key', async () => {
+          await SecureStore.setItemAsync(key, value, {});
+          await SecureStore.deleteItemAsync(key, {});
+          const result = await SecureStore.getAccessibilityAsync(key);
+          t.expect(result).toBe(null);
+        });
+      }
+    });
     t.describe('store long value, fetch long value -> Success:', () => {
       t.it('Set long value', async () => {
         const result = await SecureStore.setItemAsync(key, longValue);

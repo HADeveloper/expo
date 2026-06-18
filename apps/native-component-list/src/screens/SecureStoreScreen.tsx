@@ -117,6 +117,15 @@ function SecureStoreView() {
     }
   }
 
+  async function getAccessibility(key: string) {
+    try {
+      const result = await SecureStore.getAccessibilityAsync(key, { keychainService: service });
+      Alert.alert('Accessibility', result !== null ? `Constant: ${result}` : 'null (not found, requireAuthentication, or Android)', [{ text: 'OK' }]);
+    } catch (e: any) {
+      Alert.alert('Error!', e.message, [{ text: 'OK', onPress: () => {} }]);
+    }
+  }
+
   async function runStorageSizeDemo() {
     const parsedBytes = Number.parseInt(byteSize, 10);
     if (!Number.isFinite(parsedBytes) || parsedBytes <= 0) {
@@ -201,6 +210,9 @@ function SecureStoreView() {
       )}
       {key && <ListButton onPress={() => getValue(key)} title="Get value with key synchronously" />}
       {key && <ListButton onPress={() => deleteValue(key)} title="Delete value with key" />}
+      {key && (
+        <ListButton onPress={() => getAccessibility(key)} title="Get accessibility class (iOS)" />
+      )}
       <BodyText style={styles.demoDescription}>
         Enter a byte length to test the storage limit on this platform.
       </BodyText>

@@ -40,6 +40,10 @@ public final class SecureStoreModule: Module {
       return try set(value: value, with: key, options: options)
     }
 
+    AsyncFunction("getAccessibilityWithKeyAsync") { (key: String, options: SecureStoreOptions) -> Int? in
+      return try getAccessibility(with: key, options: options)
+    }
+
     AsyncFunction("deleteValueWithKeyAsync") { (key: String, options: SecureStoreOptions) in
       let noAuthSearchDictionary = query(with: key, options: options, requireAuthentication: false)
       let authSearchDictionary = query(with: key, options: options, requireAuthentication: true)
@@ -140,6 +144,76 @@ public final class SecureStoreModule: Module {
       return true
     } else {
       throw KeyChainException(status)
+    }
+  }
+
+  private func getAccessibility(with key: String, options: SecureStoreOptions) throws -> Int? {
+    guard let key = validate(for: key) else {
+      throw InvalidKeyException()
+    }
+
+    if let value = try readAccessibility(with: key, options: options, requireAuthentication: false) {
+      return value
+    }
+    if let value = try readAccessibility(with: key, options: options, requireAuthentication: true) {
+      return value
+    }
+    if let value = try readAccessibility(with: key, options: options, requireAuthentication: nil) {
+      return value
+    }
+    return nil
+  }
+
+  private func readAccessibility(with key: String, options: SecureStoreOptions, requireAuthentication: Bool?) throws -> Int? {
+    var query = query(with: key, options: options, requireAuthentication: requireAuthentication)
+    query[kSecMatchLimit as String] = kSecMatchLimitOne
+    query[kSecReturnAttributes as String] = kCFBooleanTrue
+
+    var item: CFTypeRef?
+    let status = SecItemCopyMatching(query as CFDictionary, &item)
+
+    switch status {
+    case errSecSuccess:
+      guard let attributes = item as? [String: Any] else {
+        return nil
+      }
+      // Items stored with requireAuthentication use kSecAttrAccessControl instead of
+      // kSecAttrAccessible; we can't reliably extract the protection class from a
+      // SecAccessControl ref, so signal "unknown" by returning nil. Callers should
+      // treat nil as "assume not readable while locked".
+      if attributes[kSecAttrAccessControl as String] != nil {
+        return nil
+      }
+      guard let accessible = attributes[kSecAttrAccessible as String] else {
+        return nil
+      }
+      let accessibleString = accessible as! CFString
+      return accessibleEnum(from: accessibleString)?.rawValue
+    case errSecItemNotFound:
+      return nil
+    default:
+      throw KeyChainException(status)
+    }
+  }
+
+  private func accessibleEnum(from value: CFString) -> SecureStoreAccessible? {
+    switch value {
+    case kSecAttrAccessibleAfterFirstUnlock:
+      return .afterFirstUnlock
+    case kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly:
+      return .afterFirstUnlockThisDeviceOnly
+    case kSecAttrAccessibleAlways:
+      return .always
+    case kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly:
+      return .whenPasscodeSetThisDeviceOnly
+    case kSecAttrAccessibleAlwaysThisDeviceOnly:
+      return .alwaysThisDeviceOnly
+    case kSecAttrAccessibleWhenUnlocked:
+      return .whenUnlocked
+    case kSecAttrAccessibleWhenUnlockedThisDeviceOnly:
+      return .whenUnlockedThisDeviceOnly
+    default:
+      return nil
     }
   }
 
